@@ -15,7 +15,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Neon connection pool
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+});
 const sql = neon(process.env.DATABASE_URL!);
 
 async function initDb() {
@@ -44,7 +50,9 @@ async function initDb() {
     `);
 
     // Seed data if empty
-    const postCountRes = await client.query("SELECT COUNT(*) as count FROM posts");
+    const postCountRes = await client.query(
+      "SELECT COUNT(*) as count FROM posts",
+    );
     if (parseInt(postCountRes.rows[0].count) === 0) {
       await client.query(`
         INSERT INTO posts (type, title, description, content, tags, date)
@@ -54,7 +62,9 @@ async function initDb() {
       `);
     }
 
-    const projectCountRes = await client.query("SELECT COUNT(*) as count FROM projects");
+    const projectCountRes = await client.query(
+      "SELECT COUNT(*) as count FROM projects",
+    );
     if (parseInt(projectCountRes.rows[0].count) === 0) {
       await client.query(`
         INSERT INTO projects (title, description, image_url, project_url, github_url, tags)
@@ -72,7 +82,9 @@ async function initDb() {
 
 async function startServer() {
   if (!process.env.DATABASE_URL) {
-    console.error("DATABASE_URL is not set. Please provide a Neon connection string.");
+    console.error(
+      "DATABASE_URL is not set. Please provide a Neon connection string.",
+    );
     process.exit(1);
   }
 
@@ -90,7 +102,10 @@ async function startServer() {
     try {
       let result;
       if (type) {
-        result = await pool.query("SELECT * FROM posts WHERE type = $1 ORDER BY id DESC", [type]);
+        result = await pool.query(
+          "SELECT * FROM posts WHERE type = $1 ORDER BY id DESC",
+          [type],
+        );
       } else {
         result = await pool.query("SELECT * FROM posts ORDER BY id DESC");
       }
@@ -102,7 +117,9 @@ async function startServer() {
 
   app.get("/api/posts/:id", async (req, res) => {
     try {
-      const result = await pool.query("SELECT * FROM posts WHERE id = $1", [req.params.id]);
+      const result = await pool.query("SELECT * FROM posts WHERE id = $1", [
+        req.params.id,
+      ]);
       if (result.rows.length > 0) {
         res.json(result.rows[0]);
       } else {
@@ -115,7 +132,9 @@ async function startServer() {
 
   app.get("/api/projects", async (req, res) => {
     try {
-      const result = await pool.query("SELECT * FROM projects ORDER BY id DESC");
+      const result = await pool.query(
+        "SELECT * FROM projects ORDER BY id DESC",
+      );
       res.json(result.rows);
     } catch (err) {
       res.status(500).json({ error: "Database error" });
